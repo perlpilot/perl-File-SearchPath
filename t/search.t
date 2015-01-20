@@ -35,7 +35,7 @@ if ($dir) {
 }
 
 # Now look in the test directories
-setpath( "MYPATH" ,map { File::Spec->catdir( "t", $_) } qw/ a b c /);
+setpath( "MYPATH", map { File::Spec->catdir( "t", $_) } qw/ a b c /);
 
 $fullpath = File::SearchPath::searchpath( "file2", env => 'MYPATH' );
 is($fullpath, File::Spec->catfile("t","a","file2"),"found file2");
@@ -62,7 +62,7 @@ setpath( "MYPATH", File::Spec->curdir );
 $fullpath = File::SearchPath::searchpath( "t", dir => 1, env => "MYPATH");
 is( $fullpath, File::Spec->catdir(File::Spec->curdir, "t"), "Found directory");
 
-$fullpath = File::SearchPath::searchpath( "t", env => "MYPATH" );
+$fullpath = File::SearchPath::searchpath( "t", env => "MYPATH", file => 1 );
 ok(!$fullpath, "Do not find dir when not looking for dir");
 
 # absolute dir
