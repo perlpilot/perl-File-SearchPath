@@ -11,8 +11,9 @@ File::SearchPath - Search for a file in an environment variable path
   $file = searchpath( 'libperl.a', env => 'LD_LIBRARY_PATH' );
   $file = searchpath( 'my.cfg', env => 'CFG_DIR', subdir => 'ME' );
 
-  $path = searchpath( $file, env => 'PATH', exe => 1 );
-  $path = searchpath( $file, env => 'PATH', dir => 1 );
+  $path = searchpath( $file, env => 'PATH', exe => 1 );     # only executables
+  $path = searchpath( $file, env => 'PATH', dir => 1 );     # only directories
+  $path = searchpath( $file, env => 'PATH', file => 1 );    # only files
 
   $file = searchpath( 'ls', $ENV{PATH} );
 
@@ -83,24 +84,28 @@ $LD_LIBRARY_PATH etc. Defaults to $PATH. An error occurs if the
 environment variable is not set or not defined. If it is defined but
 contains a blank string, the current directory will be assumed.
 
+=item subdir
+
+If you know that your file is in a subdirectory of the path described
+by the environment variable, this direcotry can be specified here.
+Alternatively, the path can be included in the file name itself.
+
 =item exe
 
-If true, only executable files will be located in the search path.
+If true, only executable files will be located in the search paths.
 If $PATH is being searched, the default is for this to be true. For all
 other environment variables the default is false. If "dir" option
 is specified "exe" will always default to false.
 
 =item dir
 
-If true, only directories will be located in the search path. Default
-is false. "dir" and "exe" are not allowed to be true in the same
-call. (triggering a croak() on error).
+If true, only directories will be located in the search paths. Default
+is false.  Cannot be true while the C<file> option is also true.
 
-=item subdir
+=item file
 
-If you know that your file is in a subdirectory of the path described
-by the environment variable, this direcotry can be specified here.
-Alternatively, the path can be included in the file name itself.
+If true, only files (i.e. non-directories) will be located in the search paths.
+Default is false.  Cannot be true while the C<dir> option is also true.
 
 =back
 
@@ -266,35 +271,34 @@ sub _env_to_dirs {
 
 =item B<_file_ok>
 
-Tests the file for existence, fileness and readability.
+Tests the file against our constraints.
 
   $isthere = _file_ok( $file );
 
-Returns true if the file passes.
+With no constraints, returns true if the file exists and is readable.
 
-An optional argument can be used to add a test for exectuableness.
+Constraints can be passed via hashref as an optional second argument
+and may be combined.
 
-  $isthere_and_exe = _file_ok( $file, 1 );
+  $is_dir_and_exe = _file_ok( $file, { dir => 1, exe => 1 } );
 
-An additional optional argument can be used to add a test for
-directory as opposed to file existence.
-
-  $isthere_and_dir = _file_ok( $dir, 0, 1 );
+Constraining a result to be both a file and a directory will always
+return false.
 
 =cut
 
 sub _file_ok {
   my $testfile = shift;
-  my $opt = shift;
+  my $constraint = shift;
 
   return unless -r $testfile;
 
   # Can't be a file and a directory at the same time
-  return if $opt->{dir} && $opt->{file};    
+  return if $constraint->{dir} && $constraint->{file};    
 
-  return if $opt->{exe} && ! -x $testfile;
-  return if $opt->{dir} && ! -d $testfile;
-  return if $opt->{file} && ! -f $testfile;
+  return if $constraint->{exe} && ! -x $testfile;
+  return if $constraint->{dir} && ! -d $testfile;
+  return if $constraint->{file} && ! -f $testfile;
   return 1;
 }
 
