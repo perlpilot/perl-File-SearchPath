@@ -150,14 +150,14 @@ sub searchpath {
       $options{exe} = ( $options{env} eq 'PATH' ? 1 : 0 );
     }
 
-    croak "Both exe and dir options were set in call to searchpath()"
-      if ($options{exe} && $options{dir});
+    croak "Both file and dir options were set in call to searchpath()"
+      if ($options{file} && $options{dir});
 
   }
 
   # check for absolute file name and behave accordingly
   if (File::Spec->file_name_is_absolute( $file )) {
-    return (_file_ok($file, $options{exe}, $options{dir}) ? $file : () );
+    return _file_ok($file, \%options);
   }
 
   # if exe is true we can simply use Env::Path directly. It doesn't
@@ -183,7 +183,7 @@ sub searchpath {
     }
 
     # does the file exist?
-    next unless _file_ok( $testfile, $options{exe}, $options{dir} );
+    next unless _file_ok( $testfile, \%options );
 
     # File looks to be found store it
     push(@matches, $testfile);
@@ -285,22 +285,17 @@ directory as opposed to file existence.
 
 sub _file_ok {
   my $testfile = shift;
-  my $testexe = shift;
-  my $testdir = shift;
+  my $opt = shift;
 
-  # do not allow both dir and exe flags
-  return 0 if ($testexe && $testdir);
-
-  return unless -e $testfile;
   return unless -r $testfile;
 
-  if ($testdir) {
-    return (-d $testfile);
-  } elsif ($testexe) {
-    return (-f $testfile && -x $testfile);
-  } else {
-    return (-f $testfile);
-  }
+  # Can't be a file and a directory at the same time
+  return if $opt->{dir} && $opt->{file};    
+
+  return if $opt->{exe} && ! -x $testfile;
+  return if $opt->{dir} && ! -d $testfile;
+  return if $opt->{file} && ! -f $testfile;
+  return 1;
 }
 
 
